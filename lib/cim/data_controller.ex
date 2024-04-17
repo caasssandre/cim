@@ -1,4 +1,7 @@
 defmodule Cim.DataController do
+  @moduledoc """
+  Controller to handle CRUD operations
+  """
   import Plug.Conn
 
   def show(conn) do
@@ -24,7 +27,9 @@ defmodule Cim.DataController do
              key: conn.params["key"],
              body: body
            }) do
-      send_resp(conn, 200, "")
+      conn
+      # |> put_resp_content_type("application/octet-stream")
+      |> send_resp(200, "")
     else
       {:error, reason} ->
         send_resp(conn, 500, "Error: #{reason}")

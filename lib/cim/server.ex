@@ -1,4 +1,14 @@
 defmodule Cim.Server do
+  @moduledoc """
+  A configurable state to hold key/value pairs within databases.
+
+  The sate has the following structure:
+  %{database_one: %{key: value},
+    database_two: %{key, value, other_key: other_value}}
+
+  Values can be read, added or deleted.
+  Databases can be deleted.
+  """
   use GenServer
 
   def start_link(opts) do
