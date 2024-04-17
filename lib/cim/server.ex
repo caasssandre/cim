@@ -5,16 +5,20 @@ defmodule Cim.Server do
     GenServer.start_link(__MODULE__, opts, name: __MODULE__)
   end
 
-  def push(pid \\ __MODULE__, %{path: %{"database" => database, "key" => key}, body: body}) do
-    GenServer.cast(pid, {:push, %{database: database, key: key, value: body}})
+  def push(pid \\ __MODULE__, %{database_name: database_name, key: key, body: body}) do
+    GenServer.cast(pid, {:push, %{database_name: database_name, key: key, value: body}})
   end
 
-  def delete(pid \\ __MODULE__, params) do
-    GenServer.call(pid, {:delete, params})
+  def delete_key(pid \\ __MODULE__, %{database_name: database_name, key: key}) do
+    GenServer.call(pid, {:delete_key, %{database_name: database_name, key: key}})
   end
 
-  def get(%{"database" => database, "key" => key}, pid \\ __MODULE__) do
-    GenServer.call(pid, {:get, %{database: database, key: key}})
+  def delete_database(pid \\ __MODULE__, %{database_name: database_name}) do
+    GenServer.call(pid, {:delete_database, %{database_name: database_name}})
+  end
+
+  def get(%{database_name: database_name, key: key}, pid \\ __MODULE__) do
+    GenServer.call(pid, {:get, %{database_name: database_name, key: key}})
   end
 
   @impl GenServer
@@ -23,7 +27,7 @@ defmodule Cim.Server do
   end
 
   @impl GenServer
-  def handle_cast({:push, %{database: database_name, key: key, value: value}}, state) do
+  def handle_cast({:push, %{database_name: database_name, key: key, value: value}}, state) do
     case Map.fetch(state, database_name) do
       {:ok, database} ->
         updated_database = Map.put(database, key, value)
@@ -37,7 +41,7 @@ defmodule Cim.Server do
   end
 
   @impl GenServer
-  def handle_call({:get, %{database: database_name, key: key}}, _from, state) do
+  def handle_call({:get, %{database_name: database_name, key: key}}, _from, state) do
     with {:ok, database} <- Map.fetch(state, database_name),
          {:ok, value} <- Map.fetch(database, key) do
       {:reply, {:ok, value}, state}
@@ -46,7 +50,7 @@ defmodule Cim.Server do
     end
   end
 
-  def handle_call({:delete, %{"database" => database_name, "key" => key}}, _from, state) do
+  def handle_call({:delete_key, %{database_name: database_name, key: key}}, _from, state) do
     with {:ok, database} <- Map.fetch(state, database_name),
          {:ok, _value} <- Map.fetch(database, key) do
       updated_database = Map.delete(database, key)
@@ -57,7 +61,7 @@ defmodule Cim.Server do
     end
   end
 
-  def handle_call({:delete, %{"database" => database_name}}, _from, state) do
+  def handle_call({:delete_database, %{database_name: database_name}}, _from, state) do
     case Map.fetch(state, database_name) do
       {:ok, _database} ->
         updated_state = Map.delete(state, database_name)

@@ -13,11 +13,11 @@ defmodule Cim.Router do
   end
 
   delete "/:database" do
-    Cim.DataController.delete(conn)
+    Cim.DataController.delete_database(conn)
   end
 
   delete "/:database/:key" do
-    Cim.DataController.delete(conn)
+    Cim.DataController.delete_key(conn)
   end
 
   post "/:database" do

@@ -2,8 +2,7 @@ defmodule Cim.DataController do
   import Plug.Conn
 
   def show(conn) do
-    # case Cim.Server.get(%{key: conn.params["key"]}) do
-    case Cim.Server.get(conn.params) do
+    case Cim.Server.get(%{database_name: conn.params["database"], key: conn.params["key"]}) do
       {:ok, value} ->
         conn
         # |> put_resp_content_type("application/octet-stream")
@@ -21,7 +20,12 @@ defmodule Cim.DataController do
     case get_request_body(conn) do
       {:ok, body} ->
         # add error handling here
-        Cim.Server.push(%{path: conn.params, body: body})
+        Cim.Server.push(%{
+          database_name: conn.params["database"],
+          key: conn.params["key"],
+          body: body
+        })
+
         send_resp(conn, 200, "")
 
       {:error, reason} ->
@@ -29,8 +33,23 @@ defmodule Cim.DataController do
     end
   end
 
-  def delete(conn) do
-    case Cim.Server.delete(conn.params) do
+  def delete_key(conn) do
+    case Cim.Server.delete_key(%{database_name: conn.params["database"], key: conn.params["key"]}) do
+      {:ok, _response} ->
+        conn
+        # |> put_resp_content_type("application/octet-stream")
+        |> send_resp(200, "")
+
+      {:data_not_found, message} ->
+        send_resp(conn, 404, message)
+
+      {:error, message} ->
+        send_resp(conn, 500, message)
+    end
+  end
+
+  def delete_database(conn) do
+    case Cim.Server.delete_database(%{database_name: conn.params["database"]}) do
       {:ok, _response} ->
         conn
         # |> put_resp_content_type("application/octet-stream")
