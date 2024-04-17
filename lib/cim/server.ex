@@ -6,7 +6,7 @@ defmodule Cim.Server do
   end
 
   def push(pid \\ __MODULE__, %{database_name: database_name, key: key, body: body}) do
-    GenServer.cast(pid, {:push, %{database_name: database_name, key: key, value: body}})
+    GenServer.call(pid, {:push, %{database_name: database_name, key: key, value: body}})
   end
 
   def delete_key(pid \\ __MODULE__, %{database_name: database_name, key: key}) do
@@ -27,20 +27,19 @@ defmodule Cim.Server do
   end
 
   @impl GenServer
-  def handle_cast({:push, %{database_name: database_name, key: key, value: value}}, state) do
+  def handle_call({:push, %{database_name: database_name, key: key, value: value}}, _from, state) do
     case Map.fetch(state, database_name) do
       {:ok, database} ->
         updated_database = Map.put(database, key, value)
         updated_state = Map.put(state, database_name, updated_database)
-        {:noreply, updated_state}
+        {:reply, {:ok, updated_state}, updated_state}
 
       :error ->
         updated_state = Map.put(state, database_name, Map.new(%{key => value}))
-        {:noreply, updated_state}
+        {:reply, {:ok, updated_state}, updated_state}
     end
   end
 
-  @impl GenServer
   def handle_call({:get, %{database_name: database_name, key: key}}, _from, state) do
     with {:ok, database} <- Map.fetch(state, database_name),
          {:ok, value} <- Map.fetch(database, key) do

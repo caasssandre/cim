@@ -17,17 +17,15 @@ defmodule Cim.DataController do
   end
 
   def create(conn) do
-    case get_request_body(conn) do
-      {:ok, body} ->
-        # add error handling here
-        Cim.Server.push(%{
-          database_name: conn.params["database"],
-          key: conn.params["key"],
-          body: body
-        })
-
-        send_resp(conn, 200, "")
-
+    with {:ok, body} <- get_request_body(conn),
+         {:ok, _response} <-
+           Cim.Server.push(%{
+             database_name: conn.params["database"],
+             key: conn.params["key"],
+             body: body
+           }) do
+      send_resp(conn, 200, "")
+    else
       {:error, reason} ->
         send_resp(conn, 500, "Error: #{reason}")
     end
