@@ -12,7 +12,8 @@ defmodule Cim.Server do
   use GenServer
 
   def start_link(opts) do
-    GenServer.start_link(__MODULE__, opts, name: __MODULE__)
+    name = Keyword.get(opts, :name, __MODULE__)
+    GenServer.start_link(__MODULE__, opts, name: name)
   end
 
   def push(pid \\ __MODULE__, %{database_name: database_name, key: key, body: body}) do
@@ -27,7 +28,7 @@ defmodule Cim.Server do
     GenServer.call(pid, {:delete_database, %{database_name: database_name}})
   end
 
-  def get(%{database_name: database_name, key: key}, pid \\ __MODULE__) do
+  def get(pid \\ __MODULE__, %{database_name: database_name, key: key}) do
     GenServer.call(pid, {:get, %{database_name: database_name, key: key}})
   end
 
@@ -42,11 +43,11 @@ defmodule Cim.Server do
       {:ok, database} ->
         updated_database = Map.put(database, key, value)
         updated_state = Map.put(state, database_name, updated_database)
-        {:reply, {:ok, updated_state}, updated_state}
+        {:reply, {:ok, :new_data_added}, updated_state}
 
       :error ->
         updated_state = Map.put(state, database_name, Map.new(%{key => value}))
-        {:reply, {:ok, updated_state}, updated_state}
+        {:reply, {:ok, :new_data_added}, updated_state}
     end
   end
 
@@ -64,7 +65,7 @@ defmodule Cim.Server do
          {:ok, _value} <- Map.fetch(database, key) do
       updated_database = Map.delete(database, key)
       updated_state = Map.put(state, database_name, updated_database)
-      {:reply, {:ok, updated_state}, updated_state}
+      {:reply, {:ok, :key_deleted}, updated_state}
     else
       :error -> {:reply, {:data_not_found, "The database or key do not exist"}, state}
     end
@@ -74,7 +75,7 @@ defmodule Cim.Server do
     case Map.fetch(state, database_name) do
       {:ok, _database} ->
         updated_state = Map.delete(state, database_name)
-        {:reply, {:ok, updated_state}, updated_state}
+        {:reply, {:ok, :database_deleted}, updated_state}
 
       :error ->
         {:reply, {:data_not_found, "The database does not exist"}, state}
