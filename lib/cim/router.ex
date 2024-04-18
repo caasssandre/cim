@@ -1,27 +1,30 @@
 defmodule Cim.Router do
+  @moduledoc false
   use Plug.Router
+
+  alias Cim.DataController
 
   plug(:match)
   plug(:dispatch)
 
   get "/:database/:key" do
-    Cim.DataController.show(conn)
+    DataController.show(conn)
   end
 
   put "/:database/:key" do
-    Cim.DataController.create(conn)
+    DataController.create(conn)
   end
 
   delete "/:database" do
-    Cim.DataController.delete_database(conn)
+    DataController.delete_database(conn)
   end
 
   delete "/:database/:key" do
-    Cim.DataController.delete_key(conn)
+    DataController.delete_key(conn)
   end
 
   post "/:database" do
-    Cim.DataController.execute_lua_request(conn)
+    DataController.execute_lua_request(conn)
   end
 
   match _ do
