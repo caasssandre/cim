@@ -21,7 +21,7 @@ defmodule Cim.Router do
   end
 
   post "/:database" do
-    send_resp(conn, 200, "Lua code")
+    Cim.DataController.execute_lua_request(conn)
   end
 
   match _ do

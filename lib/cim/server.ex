@@ -2,7 +2,7 @@ defmodule Cim.Server do
   @moduledoc """
   A configurable state to hold key/value pairs within databases.
 
-  The sate has the following structure:
+  The state has the following structure:
   %{database_one: %{key: value},
     database_two: %{key, value, other_key: other_value}}
 
@@ -11,25 +11,42 @@ defmodule Cim.Server do
   """
   use GenServer
 
+  @spec start_link(keyword()) :: :ignore | {:error, any()} | {:ok, pid()}
   def start_link(opts) do
     name = Keyword.get(opts, :name, __MODULE__)
-    GenServer.start_link(__MODULE__, opts, name: name)
+    GenServer.start_link(__MODULE__, [], name: name)
   end
 
+  @spec push(%{
+          :body => any(),
+          :database_name => binary(),
+          :key => binary(),
+          optional(pid()) => any()
+        }) :: any()
   def push(pid \\ __MODULE__, %{database_name: database_name, key: key, body: body}) do
     GenServer.call(pid, {:push, %{database_name: database_name, key: key, value: body}})
   end
 
+  @spec delete_key(%{:database_name => binary(), :key => binary(), optional(pid()) => any()}) ::
+          any()
   def delete_key(pid \\ __MODULE__, %{database_name: database_name, key: key}) do
     GenServer.call(pid, {:delete_key, %{database_name: database_name, key: key}})
   end
 
+  @spec delete_database(%{:database_name => binary(), optional(pid()) => any()}) :: any()
   def delete_database(pid \\ __MODULE__, %{database_name: database_name}) do
     GenServer.call(pid, {:delete_database, %{database_name: database_name}})
   end
 
-  def get(pid \\ __MODULE__, %{database_name: database_name, key: key}) do
-    GenServer.call(pid, {:get, %{database_name: database_name, key: key}})
+  @spec get_data(%{:database_name => binary(), :key => binary(), optional(pid()) => any()}) ::
+          any()
+  def get_data(pid \\ __MODULE__, %{database_name: database_name, key: key}) do
+    GenServer.call(pid, {:get_data, %{database_name: database_name, key: key}})
+  end
+
+  @spec execute_lua_request(%{:lua_request => binary(), optional(pid()) => any()}) :: any()
+  def execute_lua_request(pid \\ __MODULE__, %{lua_request: lua_request}) do
+    GenServer.call(pid, {:execute_lua_request, %{lua_request: lua_request}})
   end
 
   @impl GenServer
@@ -51,7 +68,7 @@ defmodule Cim.Server do
     end
   end
 
-  def handle_call({:get, %{database_name: database_name, key: key}}, _from, state) do
+  def handle_call({:get_data, %{database_name: database_name, key: key}}, _from, state) do
     with {:ok, database} <- Map.fetch(state, database_name),
          {:ok, value} <- Map.fetch(database, key) do
       {:reply, {:ok, value}, state}
@@ -80,5 +97,23 @@ defmodule Cim.Server do
       :error ->
         {:reply, {:data_not_found, "The database does not exist"}, state}
     end
+  end
+
+  def handle_call({:execute_lua_request, %{lua_request: lua_request}}, _from, state) do
+    luerl = Luerl.init()
+
+    returned =
+      Luerl.do(
+        luerl,
+        "return dofile('/Users/cassandre/Projects/application-build/cim/lib/cim/custom.lua')"
+      )
+
+    dbg(returned)
+    dbg(lua_request)
+    {ret, other} = Luerl.do(luerl, "printer('my_key')")
+    # {ret, other} = Luerl.eval(luerl, lua_request)
+    dbg("#{ret}")
+    dbg("#{other}")
+    {:reply, {:ok, "We're doing lua stuff"}, state}
   end
 end
