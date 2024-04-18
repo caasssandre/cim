@@ -11,8 +11,8 @@ defmodule Cim.DataControllerTest do
   describe "GET /show" do
     test "cannot find the key" do
       expect(Datastore, :get, fn database, key ->
-        assert  "my_database"= database
-        assert  "my_key" = key
+        assert "my_database" = database
+        assert "my_key" = key
         {:not_found, "The database or key do not exist"}
       end)
 
@@ -28,8 +28,8 @@ defmodule Cim.DataControllerTest do
 
     test "finds the key and returns 200" do
       expect(Datastore, :get, fn database, key ->
-        assert  "my_database"= database
-        assert  "my_key" = key
+        assert "my_database" = database
+        assert "my_key" = key
         {:ok, "test"}
       end)
 
@@ -45,8 +45,8 @@ defmodule Cim.DataControllerTest do
 
     test "with a server error" do
       expect(Datastore, :get, fn database, key ->
-        assert  "my_database"= database
-        assert  "my_key" = key
+        assert "my_database" = database
+        assert "my_key" = key
         {:error, "internal server error"}
       end)
 
@@ -64,9 +64,9 @@ defmodule Cim.DataControllerTest do
   describe "PUT /create" do
     test "responds with 200 and no content" do
       expect(Datastore, :push, fn database, key, body ->
-        assert  "my_database"= database
-        assert  "my_key" = key
-        assert  "test" = body
+        assert "my_database" = database
+        assert "my_key" = key
+        assert "test" = body
         {:ok, :new_data_added}
       end)
 
@@ -82,9 +82,9 @@ defmodule Cim.DataControllerTest do
 
     test "with a server error" do
       expect(Datastore, :push, fn database, key, body ->
-        assert  "my_database"= database
-        assert  "my_key" = key
-        assert  "test" = body
+        assert "my_database" = database
+        assert "my_key" = key
+        assert "test" = body
         {:error, "internal server error"}
       end)
 

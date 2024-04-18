@@ -3,8 +3,8 @@ defmodule Cim.Datastore do
   A configurable state to hold key/value pairs within databases.
 
   The state has the following structure:
-  %{database_one: %{key: value},
-    database_two: %{key, value, other_key: other_value}}
+  %{database_one: %{key: "value"},
+    database_two: %{key: "value", other_key: "other_value"}}
 
   Values can be read, added or deleted.
   Databases can be deleted.
@@ -45,14 +45,13 @@ defmodule Cim.Datastore do
     {:ok, %{}}
   end
 
-  # put_in/get_in
+  # updated_state = put_in(state, [database_name, key], value)
+  # {:reply, {:ok, :new_data_added}, updated_state}
   @impl GenServer
   def handle_call({:push, %{database_name: database_name, key: key, value: value}}, _from, state) do
     case Map.fetch(state, database_name) do
-      {:ok, database} ->
-        updated_database = Map.put(database, key, value)
-        updated_state = Map.put(state, database_name, updated_database)
-        {:reply, {:ok, :new_data_added}, updated_state}
+      {:ok, _database} ->
+        {:reply, {:ok, :new_data_added}, put_in(state, [database_name, key], value)}
 
       :error ->
         updated_state = Map.put(state, database_name, %{key => value})
