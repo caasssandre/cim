@@ -36,13 +36,16 @@ defmodule Cim.Datastore do
     GenServer.call(pid, {:get, %{database_name: database_name, key: key}})
   end
 
-  def execute_lua_request(pid \\ __MODULE__, lua_request) do
-    GenServer.call(pid, {:execute_lua_request, %{lua_request: lua_request}})
+  def execute_lua_request(pid \\ __MODULE__, database_name, lua_request) do
+    GenServer.call(
+      pid,
+      {:execute_lua_request, %{database_name: database_name, lua_request: lua_request}}
+    )
   end
 
   @impl GenServer
   def init(_opts) do
-    {:ok, %{}}
+    {:ok, %{"cass" => "hello"}}
   end
 
   # updated_state = put_in(state, [database_name, key], value)
@@ -90,21 +93,19 @@ defmodule Cim.Datastore do
     end
   end
 
-  def handle_call({:execute_lua_request, _database, lua_request}, _from, state) do
-    luerl = Luerl.init()
+  def handle_call(
+        {:execute_lua_request, %{lua_request: lua_request, database_name: _database_name}},
+        _from,
+        state
+      ) do
+    lua_state = Luerl.init()
 
-    returned =
-      Luerl.do(
-        luerl,
-        "return dofile('/Users/cassandre/Projects/application-build/cim/lib/cim/custom.lua')"
-      )
+    lua_read = fn([key], lua_state_i) -> {[key <> " G"], lua_state_i} end
 
-    dbg(returned)
-    dbg(lua_request)
-    {ret, other} = Luerl.do(returned, "printer('my_key')")
-    # {ret, other} = Luerl.eval(luerl, lua_request)
-    dbg("#{ret}")
-    dbg("#{other}")
+    lua_state_1 = Luerl.set_table(lua_state, ["cim_read"], lua_read)
+
+    {result, _luerl_state_2} = Luerl.do(lua_state_1, lua_request)
+    dbg result
     {:reply, {:ok, "We're doing lua stuff"}, state}
   end
 end
