@@ -45,7 +45,7 @@ defmodule Cim.Datastore do
 
   @impl GenServer
   def init(_opts) do
-    {:ok, %{"cass" => "hello"}}
+    {:ok, %{"world" => "hello"}}
   end
 
   # updated_state = put_in(state, [database_name, key], value)
@@ -63,12 +63,7 @@ defmodule Cim.Datastore do
   end
 
   def handle_call({:get, %{database_name: database_name, key: key}}, _from, state) do
-    with {:ok, database} <- Map.fetch(state, database_name),
-         {:ok, value} <- Map.fetch(database, key) do
-      {:reply, {:ok, value}, state}
-    else
-      :error -> {:reply, {:not_found, "The database or key do not exist"}, state}
-    end
+    value_from(state, database_name, key)
   end
 
   def handle_call({:delete_key, %{database_name: database_name, key: key}}, _from, state) do
@@ -94,18 +89,49 @@ defmodule Cim.Datastore do
   end
 
   def handle_call(
-        {:execute_lua_request, %{lua_request: lua_request, database_name: _database_name}},
+        {:execute_lua_request, %{lua_request: lua_request, database_name: database_name}},
         _from,
-        state
+        datastore_state
       ) do
-    lua_state = Luerl.init()
+    lua_state = init_lua_functions()
 
-    lua_read = fn([key], lua_state_i) -> {[key <> " G"], lua_state_i} end
+    # {:ok, database} = Map.fetch(datastore_state, database_name)
+    luerl_state_x = Luerl.set_table(lua_state, ["datastore_state"], datastore_state)
 
-    lua_state_1 = Luerl.set_table(lua_state, ["cim_read"], lua_read)
+    {result, _luerl_state_2} =
+      Luerl.do(
+        luerl_state_x,
+        lua_request <> " return 'cass', 'guinut'"
+      )
 
-    {result, _luerl_state_2} = Luerl.do(lua_state_1, lua_request)
-    dbg result
-    {:reply, {:ok, "We're doing lua stuff"}, state}
+    dbg(result)
+    {:reply, {:ok, "We're doing lua stuff"}, datastore_state}
+  end
+
+  defp value_from(state, database_name, key) do
+    case get_in(state, [database_name, key]) do
+      nil -> {:reply, {:not_found, "The database or key do not exist"}, state}
+      value -> {:reply, {:ok, value}, state}
+    end
+  end
+
+  defp keys_from(state, database_name) do
+    case get_in(state, [database_name]) do
+      nil -> {:not_found, "The database do not exist"}
+      database -> Map.keys(database)
+    end
+  end
+
+  defp init_lua_functions() do
+    Luerl.init()
+    |> Luerl.set_table(["cim_read"], init_lua_read())
+  end
+
+  defp init_lua_read() do
+    fn [keys], lua_state_i ->
+      {ds_state, _lua_state} = Luerl.get_table(lua_state_i, ["datastore_state"])
+      dbg ds_state
+      {[keys], lua_state_i}
+    end
   end
 end
