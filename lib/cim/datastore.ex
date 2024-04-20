@@ -45,11 +45,9 @@ defmodule Cim.Datastore do
 
   @impl GenServer
   def init(_opts) do
-    {:ok, %{"world" => "hello", "key" => "valueasdf"}}
+    {:ok, %{"database" => %{"world" => "hello", "key" => "valueasdf"}}}
   end
 
-  # updated_state = put_in(state, [database_name, key], value)
-  # {:reply, {:ok, :new_data_added}, updated_state}
   @impl GenServer
   def handle_call({:push, %{database_name: database_name, key: key, value: value}}, _from, state) do
     case Map.fetch(state, database_name) do
@@ -89,23 +87,33 @@ defmodule Cim.Datastore do
   end
 
   def handle_call(
-        {:execute_lua_request, %{lua_request: lua_request, database_name: _database_name}},
+        {:execute_lua_request, %{lua_request: lua_request, database_name: database_name}},
         _from,
         datastore_state
       ) do
+    case Map.fetch(datastore_state, database_name) do
+      {:ok, database} -> execute_lua_on_existing_db(database, lua_request, datastore_state, database_name)
+      :error -> {:reply, {:not_found, "The database does not exist"}, datastore_state}
+    end
+  end
+
+  defp execute_lua_on_existing_db(database, lua_request, datastore_state, database_name) do
     lua_state = init_lua_functions()
+    |> Luerl.set_table(["datastore_state"], database)
 
-    # {:ok, database} = Map.fetch(datastore_state, database_name)
-    luerl_state_x = Luerl.set_table(lua_state, ["datastore_state"], datastore_state)
-
-    {result, _luerl_state_2} =
+    {_result, luerl_state_2} =
       Luerl.do(
-        luerl_state_x,
-        lua_request <> " return cim_return_value()"
+        lua_state,
+        lua_request
       )
 
-    dbg(result)
-    {:reply, {:ok, "We're doing lua stuff"}, datastore_state}
+      {retrieved_value, _lua_state} = Luerl.get_table(luerl_state_2, ["return_value"])
+      {ds_state_new, _lua_state} = Luerl.get_table(luerl_state_2, ["datastore_state"])
+
+      dbg retrieved_value
+      dbg put_in(datastore_state, [database_name], Map.new(ds_state_new))
+
+      {:reply, {:ok, retrieved_value}, put_in(datastore_state, [database_name], Map.new(ds_state_new))}
   end
 
   defp value_from(state, database_name, key) do
@@ -118,22 +126,25 @@ defmodule Cim.Datastore do
   defp init_lua_functions() do
     Luerl.init()
     |> Luerl.set_table(["cim_read"], init_lua_read())
-    |> Luerl.set_table(["cim_return_value"], init_return_value())
+    |> Luerl.set_table(["cim_write"], init_lua_write())
+    # |> Luerl.set_table(["cim_return_value"], init_return_value())
   end
 
   defp init_lua_read() do
-    fn [key], lua_state_i ->
-      {ds_state, _lua_state} = Luerl.get_table(lua_state_i, ["datastore_state"])
+    fn [key], lua_state ->
+      {ds_state, _lua_state} = Luerl.get_table(lua_state, ["datastore_state"])
       {_key, found_value} = Enum.find(ds_state, fn {ds_key, _value} -> ds_key == key end)
-      luerl_state_new = Luerl.set_table(lua_state_i, ["return_value"], found_value)
+      luerl_state_new = Luerl.set_table(lua_state, ["return_value"], found_value)
       {[found_value], luerl_state_new}
     end
   end
 
-  defp init_return_value() do
-    fn [], lua_state_i ->
-      {retrieved_value, _lua_state} = Luerl.get_table(lua_state_i, ["return_value"])
-      {[retrieved_value], lua_state_i}
+  defp init_lua_write() do
+    fn [key, value], lua_state ->
+      {ds_state, _lua_state} = Luerl.get_table(lua_state, ["datastore_state"])
+      new_ds_state = [{key, value}] ++ ds_state
+      luerl_state_new = Luerl.set_table(lua_state, ["datastore_state"], new_ds_state)
+      {[""], luerl_state_new}
     end
   end
 end
