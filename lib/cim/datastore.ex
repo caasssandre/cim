@@ -110,10 +110,10 @@ defmodule Cim.Datastore do
       {retrieved_value, _lua_state} = Luerl.get_table(luerl_state_2, ["return_value"])
       {ds_state_new, _lua_state} = Luerl.get_table(luerl_state_2, ["datastore_state"])
 
-      dbg retrieved_value
+      dbg retrieved_value || ""
       dbg put_in(datastore_state, [database_name], Map.new(ds_state_new))
 
-      {:reply, {:ok, retrieved_value}, put_in(datastore_state, [database_name], Map.new(ds_state_new))}
+      {:reply, {:ok, retrieved_value || ""}, put_in(datastore_state, [database_name], Map.new(ds_state_new))}
   end
 
   defp value_from(state, database_name, key) do

@@ -54,11 +54,11 @@ defmodule Cim.DataController do
   @spec execute_lua_request(Plug.Conn.t()) :: Plug.Conn.t()
   def execute_lua_request(%{params: params} = conn) do
     with {:ok, body, _conn} <- read_body(conn),
-         {:ok, _response} <-
+         {:ok, response} <-
            Datastore.execute_lua_request(params["database"], body) do
       conn
       # |> put_resp_content_type("application/octet-stream")
-      |> send_resp(200, "")
+      |> send_resp(200, response)
     else
       {:error, reason} ->
         send_resp(conn, 500, "Error: #{reason}")
