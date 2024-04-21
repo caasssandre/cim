@@ -110,36 +110,37 @@ defmodule Cim.Datastore do
   defp execute_lua_on_existing_db(database, lua_request) do
     lua_state =
       set_functions_in_lua_state()
-      |> Luerl.set_table([@cim_database], database)
+      |> Luerl.set_table(["cim_database"], database)
 
-      try do
-        {_result, luerl_state_2} =
-          Luerl.do(
-            lua_state,
-            lua_request
-          )
+    try do
+      {_result, luerl_state_2} =
+        Luerl.do(
+          lua_state,
+          lua_request
+        )
 
-          {value_to_return, _lua_state} = Luerl.get_table(luerl_state_2, ["return_value"])
-          {updated_database, _lua_state} = Luerl.get_table(luerl_state_2, [@cim_database])
+      {value_to_return, _lua_state} = Luerl.get_table(luerl_state_2, ["return_value"])
+      {updated_database, _lua_state} = Luerl.get_table(luerl_state_2, [@cim_database])
 
-          {:ok, %{value: value_to_return, updated_database: updated_database}}
-      rescue
-        e in [ErlangError] ->
-          case e.original do
-            {:lua_error, reason, _details} ->
-              {:lua_code_error, reason}
-            _ ->
-              {:lua_code_error, e}
-          end
-      end
+      {:ok, %{value: value_to_return, updated_database: updated_database}}
+    rescue
+      e in [ErlangError] ->
+        case e.original do
+          {:lua_error, reason, _details} ->
+            {:lua_code_error, reason}
+
+          _ ->
+            {:lua_code_error, e}
+        end
+    end
   end
 
   defp set_functions_in_lua_state() do
     Luerl.init()
-    # |> Luerl.set_table(["cim"], %{})
-    |> Luerl.set_table(["cim_read"], set_lua_read())
-    |> Luerl.set_table(["cim_write"], set_lua_write())
-    |> Luerl.set_table(["cim_delete"], set_lua_delete())
+    |> Luerl.set_table(["cim"], %{})
+    |> Luerl.set_table(["cim", "read"], set_lua_read())
+    |> Luerl.set_table(["cim", "write"], set_lua_write())
+    |> Luerl.set_table(["cim", "delete"], set_lua_delete())
   end
 
   defp set_lua_read() do

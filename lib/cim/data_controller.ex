@@ -61,8 +61,10 @@ defmodule Cim.DataController do
     else
       {:not_found, reason} ->
         send_resp(conn, 404, reason)
+
       {:lua_code_error, reason} ->
         send_resp(conn, 404, "Error: #{inspect(reason)}")
+
       {:error, reason} ->
         send_resp(conn, 500, "Error: #{inspect(reason)}")
     end
