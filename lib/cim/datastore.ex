@@ -110,19 +110,18 @@ defmodule Cim.Datastore do
   defp execute_lua_on_existing_db(database, lua_request) do
     lua_state =
       set_functions_in_lua_state()
-      |> Luerl.set_table(["cim_database"], database)
+      |> Luerl.set_table([@cim_database], database)
 
     try do
-      {_result, luerl_state_2} =
+      {result, luerl_state_2} =
         Luerl.do(
           lua_state,
           lua_request
         )
 
-      {value_to_return, _lua_state} = Luerl.get_table(luerl_state_2, ["return_value"])
       {updated_database, _lua_state} = Luerl.get_table(luerl_state_2, [@cim_database])
 
-      {:ok, %{value: value_to_return, updated_database: updated_database}}
+      {:ok, %{value: result, updated_database: updated_database}}
     rescue
       e in [ErlangError] ->
         case e.original do
@@ -147,8 +146,7 @@ defmodule Cim.Datastore do
     fn [key], lua_state ->
       {database, _lua_state} = Luerl.get_table(lua_state, [@cim_database])
       {_key, found_value} = Enum.find(database, fn {ds_key, _value} -> ds_key == key end)
-      luerl_state_new = Luerl.set_table(lua_state, ["return_value"], found_value)
-      {[found_value], luerl_state_new}
+      {[found_value], lua_state}
     end
   end
 
