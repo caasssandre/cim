@@ -94,32 +94,26 @@ defmodule Cim.Datastore do
   def handle_call(
         {:execute_lua_request, %{lua_request: lua_request, database_name: database_name}},
         _from,
-        datastore_state
+        state
       ) do
-    with {:ok, database} <- Map.fetch(datastore_state, database_name),
+    with {:ok, database} <- Map.fetch(state, database_name),
          {:ok, %{value: value, updated_database: updated_database}} <-
-           execute_lua_on_existing_db(database, lua_request) do
-      {:reply, {:ok, value || ""},
-       put_in(datastore_state, [database_name], Map.new(updated_database))}
+           execute_lua_request_on_db(database, lua_request) do
+      {:reply, {:ok, value || ""}, put_in(state, [database_name], Map.new(updated_database))}
     else
-      :error -> {:reply, {:not_found, "The database does not exist"}, datastore_state}
-      {:lua_code_error, reason} -> {:reply, {:lua_code_error, reason}, datastore_state}
+      :error -> {:reply, {:not_found, "The database does not exist"}, state}
+      {:lua_code_error, reason} -> {:reply, {:lua_code_error, reason}, state}
     end
   end
 
-  defp execute_lua_on_existing_db(database, lua_request) do
-    lua_state =
-      set_functions_in_lua_state()
-      |> Luerl.set_table([@cim_database], database)
-
+  defp execute_lua_request_on_db(database, lua_request) do
     try do
-      {result, luerl_state_2} =
-        Luerl.do(
-          lua_state,
-          lua_request
-        )
+      {result, lua_state} =
+        set_functions_in_lua_state()
+        |> Luerl.set_table([@cim_database], database)
+        |> Luerl.do(lua_request)
 
-      {updated_database, _lua_state} = Luerl.get_table(luerl_state_2, [@cim_database])
+      {updated_database, _lua_state} = Luerl.get_table(lua_state, [@cim_database])
 
       {:ok, %{value: result, updated_database: updated_database}}
     rescue
@@ -145,8 +139,11 @@ defmodule Cim.Datastore do
   defp set_lua_read() do
     fn [key], lua_state ->
       {database, _lua_state} = Luerl.get_table(lua_state, [@cim_database])
-      {_key, found_value} = Enum.find(database, fn {ds_key, _value} -> ds_key == key end)
-      {[found_value], lua_state}
+
+      case Enum.find(database, fn {ds_key, _value} -> ds_key == key end) do
+        {_key, found_value} -> {[found_value], lua_state}
+        _ -> {[""], lua_state}
+      end
     end
   end
 
@@ -154,8 +151,8 @@ defmodule Cim.Datastore do
     fn [key, value], lua_state ->
       {database, _lua_state} = Luerl.get_table(lua_state, [@cim_database])
       updated_database = [{key, value}] ++ database
-      luerl_state_new = Luerl.set_table(lua_state, [@cim_database], updated_database)
-      {[""], luerl_state_new}
+      updated_lua_state = Luerl.set_table(lua_state, [@cim_database], updated_database)
+      {[""], updated_lua_state}
     end
   end
 
@@ -163,8 +160,8 @@ defmodule Cim.Datastore do
     fn [key], lua_state ->
       {database, _lua_state} = Luerl.get_table(lua_state, [@cim_database])
       updated_database = Enum.filter(database, fn {ds_key, _value} -> ds_key != key end)
-      luerl_state_new = Luerl.set_table(lua_state, [@cim_database], updated_database)
-      {[""], luerl_state_new}
+      updated_lua_state = Luerl.set_table(lua_state, [@cim_database], updated_database)
+      {[""], updated_lua_state}
     end
   end
 end
