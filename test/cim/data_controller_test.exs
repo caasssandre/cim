@@ -100,11 +100,58 @@ defmodule Cim.DataControllerTest do
   end
 
   describe "DELETE /delete_key" do
+    test "responds with 200 and no content" do
+      expect(Datastore, :delete_key, fn database, key ->
+        assert "my_database" = database
+        assert "my_key" = key
+        :ok
+      end)
+
+      conn =
+        :delete
+        |> conn("/my_database/my_key")
+        |> Router.call(@opts)
+
+      assert conn.state == :sent
+      assert conn.status == 200
+      assert conn.resp_body == ""
+    end
   end
 
   describe "DELETE /delete_database" do
+    test "responds with 200 and no content" do
+      expect(Datastore, :delete_database, fn database ->
+        assert "my_database" = database
+        :ok
+      end)
+
+      conn =
+        :delete
+        |> conn("/my_database")
+        |> Router.call(@opts)
+
+      assert conn.state == :sent
+      assert conn.status == 200
+      assert conn.resp_body == ""
+    end
   end
 
   describe "POST /execute_lua" do
+    test "responds with 200 and no content" do
+      expect(Datastore, :execute_lua, fn database, body ->
+        assert "my_database" = database
+        assert "cim.read('key')" = body
+        {:ok, "value"}
+      end)
+
+      conn =
+        :post
+        |> conn("/my_database", "cim.read('key')")
+        |> Router.call(@opts)
+
+      assert conn.state == :sent
+      assert conn.status == 200
+      assert conn.resp_body == "value"
+    end
   end
 end

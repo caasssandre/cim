@@ -17,8 +17,8 @@ defmodule Cim.DataController do
       {:error, :not_found} ->
         send_resp(conn, 404, "The database or key do not exist")
 
-      {:error, reason} ->
-        send_resp(conn, 500, "Error: #{reason}")
+        # _ ->
+        #   send_resp(conn, 500, "Error: ")
     end
   end
 
@@ -36,18 +36,24 @@ defmodule Cim.DataController do
   @spec delete_key(Plug.Conn.t()) :: Plug.Conn.t()
   def delete_key(%{params: params} = conn) do
     case Datastore.delete_key(params["database"], params["key"]) do
-      :ok -> send_resp(conn, 200, "")
-      {:error, :not_found} -> send_resp(conn, 404, "The database or key do not exist")
-      {:error, reason} -> send_resp(conn, 500, "Error: #{reason}")
+      :ok ->
+        send_resp(conn, 200, "")
+
+      {:error, :not_found} ->
+        send_resp(conn, 404, "The database or key do not exist")
+        # {:error, reason} -> send_resp(conn, 500, "Error: #{reason}")
     end
   end
 
   @spec delete_database(Plug.Conn.t()) :: Plug.Conn.t()
   def delete_database(%{params: params} = conn) do
     case Datastore.delete_database(params["database"]) do
-      :ok -> send_resp(conn, 200, "")
-      {:error, :not_found} -> send_resp(conn, 404, "The database does not exist")
-      {:error, reason} -> send_resp(conn, 500, "Error: #{reason}")
+      :ok ->
+        send_resp(conn, 200, "")
+
+      {:error, :not_found} ->
+        send_resp(conn, 404, "The database does not exist")
+        # {:error, reason} -> send_resp(conn, 500, "Error: #{reason}")
     end
   end
 
@@ -62,11 +68,11 @@ defmodule Cim.DataController do
       {:error, :not_found} ->
         send_resp(conn, 404, "The database or key do not exist")
 
-      {:lua_code_error, reason} ->
+      {:error, {:lua, reason}} ->
         send_resp(conn, 404, "Error: #{inspect(reason)}")
 
-      {:error, reason} ->
-        send_resp(conn, 500, "Error: #{inspect(reason)}")
+        # {:error, reason} ->
+        #   send_resp(conn, 500, "Error: #{inspect(reason)}")
     end
   end
 end

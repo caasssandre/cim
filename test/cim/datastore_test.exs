@@ -85,7 +85,7 @@ defmodule Cim.DatastoreTest do
     test "cim.read returns an empty string if the key is not found", %{pid: pid} do
       Datastore.put(pid, "test_database", "test_key", "test")
 
-      assert {:ok, ""} =
+      assert {:ok, nil} =
                Datastore.execute_lua(pid, "test_database", "return cim.read('bad_key')")
     end
 
@@ -103,7 +103,7 @@ defmodule Cim.DatastoreTest do
     test "cim.delete deletes the correct key value pair to the database", %{pid: pid} do
       Datastore.put(pid, "test_database", "test_key", "test")
 
-      assert {:ok, ""} =
+      assert {:ok, nil} =
                Datastore.execute_lua(
                  pid,
                  "test_database",
@@ -137,18 +137,19 @@ defmodule Cim.DatastoreTest do
     test "returns an error if the lua code is invalid", %{pid: pid} do
       Datastore.put(pid, "test_database", "test_key", "test")
 
-      assert {:lua_code_error, {:undefined_function, nil}} =
+      assert {:error, {:lua, {:undefined_function, nil}}} =
                Datastore.execute_lua(
                  pid,
                  "test_database",
                  "cim.bad_function('new_key', 'new_value')"
                )
 
-      assert {:lua_code_error,
-              [
-                {1, :luerl_parse,
-                 [~c"syntax error before: ", [[60, 60, ~c"\"new_key\"", 62, 62]]]}
-              ]} =
+      assert {:error,
+              {:lua,
+               [
+                 {1, :luerl_parse,
+                  [~c"syntax error before: ", [[60, 60, ~c"\"new_key\"", 62, 62]]]}
+               ]}} =
                Datastore.execute_lua(
                  pid,
                  "test_database",
