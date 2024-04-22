@@ -15,7 +15,7 @@ defmodule Cim.DatastoreTest do
     end
 
     test "returns an error if the database/key is not present", %{pid: pid} do
-      assert {:not_found, "The database or key do not exist"} =
+      assert {:error, :not_found} =
                Datastore.get(pid, "test_database", "test_key")
     end
   end
@@ -41,7 +41,7 @@ defmodule Cim.DatastoreTest do
       assert {:ok, "test_three"} =
                Datastore.get(pid, "test_database_two", "test_key")
 
-      assert {:not_found, "The database or key do not exist"} =
+      assert {:error, :not_found} =
                Datastore.get(pid, "test_database", "test_key")
     end
   end
@@ -55,27 +55,27 @@ defmodule Cim.DatastoreTest do
       assert :ok =
                Datastore.delete_database(pid, "test_database")
 
-      assert {:not_found, "The database or key do not exist"} =
+      assert {:error, :not_found} =
                Datastore.get(pid, "test_database", "test_key_two")
 
       assert {:ok, "test"} =
                Datastore.get(pid, "test_database_two", "test_key")
 
-      assert {:not_found, "The database or key do not exist"} =
+      assert {:error, :not_found} =
                Datastore.get(pid, "test_database", "test_key")
     end
   end
 
-  describe "execute_lua_request/3" do
+  describe "execute_lua/3" do
     test "cim.read returns the value for the key", %{pid: pid} do
       Datastore.put(pid, "test_database", "test_key", "test")
       Datastore.put(pid, "test_database", "test_key_2", "test_2")
 
       assert {:ok, "test"} =
-               Datastore.execute_lua_request(pid, "test_database", "return cim.read('test_key')")
+               Datastore.execute_lua(pid, "test_database", "return cim.read('test_key')")
 
       assert {:ok, "test_2"} =
-               Datastore.execute_lua_request(
+               Datastore.execute_lua(
                  pid,
                  "test_database",
                  "return cim.read('test_key_2')"
@@ -86,14 +86,14 @@ defmodule Cim.DatastoreTest do
       Datastore.put(pid, "test_database", "test_key", "test")
 
       assert {:ok, ""} =
-               Datastore.execute_lua_request(pid, "test_database", "return cim.read('bad_key')")
+               Datastore.execute_lua(pid, "test_database", "return cim.read('bad_key')")
     end
 
     test "cim.write adds the correct key value pair to the database", %{pid: pid} do
       Datastore.put(pid, "test_database", "test_key", "test")
 
       assert {:ok, "new_value"} =
-               Datastore.execute_lua_request(
+               Datastore.execute_lua(
                  pid,
                  "test_database",
                  "cim.write('new_key', 'new_value') return cim.read('new_key')"
@@ -104,7 +104,7 @@ defmodule Cim.DatastoreTest do
       Datastore.put(pid, "test_database", "test_key", "test")
 
       assert {:ok, ""} =
-               Datastore.execute_lua_request(
+               Datastore.execute_lua(
                  pid,
                  "test_database",
                  "cim.delete('test_key') return cim.read('test_key')"
@@ -112,22 +112,22 @@ defmodule Cim.DatastoreTest do
     end
 
     test "returns an error if the database is not found", %{pid: pid} do
-      assert {:not_found, "The database does not exist"} =
-               Datastore.execute_lua_request(
+      assert {:error, :not_found} =
+               Datastore.execute_lua(
                  pid,
                  "test_database",
                  "cim.write('new_key', 'new_value')"
                )
 
-      assert {:not_found, "The database does not exist"} =
-               Datastore.execute_lua_request(
+      assert {:error, :not_found} =
+               Datastore.execute_lua(
                  pid,
                  "test_database",
                  "cim.read('new_key')"
                )
 
-      assert {:not_found, "The database does not exist"} =
-               Datastore.execute_lua_request(
+      assert {:error, :not_found} =
+               Datastore.execute_lua(
                  pid,
                  "test_database",
                  "cim.delete('new_key')"
@@ -138,7 +138,7 @@ defmodule Cim.DatastoreTest do
       Datastore.put(pid, "test_database", "test_key", "test")
 
       assert {:lua_code_error, {:undefined_function, nil}} =
-               Datastore.execute_lua_request(
+               Datastore.execute_lua(
                  pid,
                  "test_database",
                  "cim.bad_function('new_key', 'new_value')"
@@ -149,7 +149,7 @@ defmodule Cim.DatastoreTest do
                 {1, :luerl_parse,
                  [~c"syntax error before: ", [[60, 60, ~c"\"new_key\"", 62, 62]]]}
               ]} =
-               Datastore.execute_lua_request(
+               Datastore.execute_lua(
                  pid,
                  "test_database",
                  "cim.'new_key', 'new_value'"

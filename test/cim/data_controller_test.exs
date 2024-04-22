@@ -13,7 +13,7 @@ defmodule Cim.DataControllerTest do
       expect(Datastore, :get, fn database, key ->
         assert "my_database" = database
         assert "my_key" = key
-        {:not_found, "The database or key do not exist"}
+        {:error, :not_found}
       end)
 
       conn =
@@ -105,6 +105,6 @@ defmodule Cim.DataControllerTest do
   describe "DELETE /delete_database" do
   end
 
-  describe "POST /execute_lua_request" do
+  describe "POST /execute_lua" do
   end
 end

@@ -24,7 +24,7 @@ defmodule Cim.Router do
   end
 
   post "/:database" do
-    DataController.execute_lua_request(conn)
+    DataController.execute_lua(conn)
   end
 
   match _ do

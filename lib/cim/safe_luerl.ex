@@ -4,8 +4,8 @@ defmodule Cim.Lua do
   """
 
   @spec safe_do(any(), String.t()) :: {:error, any()} | {:ok, %{lua_state: any(), result: any()}}
-  def safe_do(lua_state, lua_request) do
-    {[result], lua_state} = Luerl.do(lua_state, lua_request)
+  def safe_do(lua_state, lua_code) do
+    {[result], lua_state} = Luerl.do(lua_state, lua_code)
     {:ok, %{result: result, lua_state: lua_state}}
   rescue
     e ->

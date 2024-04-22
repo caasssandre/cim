@@ -14,8 +14,8 @@ defmodule Cim.DataController do
         |> put_resp_content_type("application/octet-stream")
         |> send_resp(200, value)
 
-      {:not_found, reason} ->
-        send_resp(conn, 404, reason)
+      {:error, :not_found} ->
+        send_resp(conn, 404, "The database or key do not exist")
 
       {:error, reason} ->
         send_resp(conn, 500, "Error: #{reason}")
@@ -37,7 +37,7 @@ defmodule Cim.DataController do
   def delete_key(%{params: params} = conn) do
     case Datastore.delete_key(params["database"], params["key"]) do
       :ok -> send_resp(conn, 200, "")
-      {:not_found, reason} -> send_resp(conn, 404, reason)
+      {:error, :not_found} -> send_resp(conn, 404, "The database or key do not exist")
       {:error, reason} -> send_resp(conn, 500, "Error: #{reason}")
     end
   end
@@ -46,21 +46,21 @@ defmodule Cim.DataController do
   def delete_database(%{params: params} = conn) do
     case Datastore.delete_database(params["database"]) do
       :ok -> send_resp(conn, 200, "")
-      {:not_found, reason} -> send_resp(conn, 404, reason)
+      {:error, :not_found} -> send_resp(conn, 404, "The database does not exist")
       {:error, reason} -> send_resp(conn, 500, "Error: #{reason}")
     end
   end
 
-  @spec execute_lua_request(Plug.Conn.t()) :: Plug.Conn.t()
-  def execute_lua_request(%{params: params} = conn) do
+  @spec execute_lua(Plug.Conn.t()) :: Plug.Conn.t()
+  def execute_lua(%{params: params} = conn) do
     with {:ok, body, _conn} <- read_body(conn),
-         {:ok, response} <- Datastore.execute_lua_request(params["database"], body) do
+         {:ok, response} <- Datastore.execute_lua(params["database"], body) do
       conn
       |> put_resp_content_type("application/octet-stream")
       |> send_resp(200, response)
     else
-      {:not_found, reason} ->
-        send_resp(conn, 404, reason)
+      {:error, :not_found} ->
+        send_resp(conn, 404, "The database or key do not exist")
 
       {:lua_code_error, reason} ->
         send_resp(conn, 404, "Error: #{inspect(reason)}")

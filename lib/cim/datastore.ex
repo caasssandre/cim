@@ -40,11 +40,11 @@ defmodule Cim.Datastore do
     GenServer.call(pid, {:get, %{database_name: database_name, key: key}})
   end
 
-  @spec execute_lua_request(String.t(), String.t()) :: any()
-  def execute_lua_request(pid \\ __MODULE__, database_name, lua_request) do
+  @spec execute_lua(String.t(), String.t()) :: any()
+  def execute_lua(pid \\ __MODULE__, database_name, lua_code) do
     GenServer.call(
       pid,
-      {:execute_lua_request, %{database_name: database_name, lua_request: lua_request}}
+      {:execute_lua, %{database_name: database_name, lua_code: lua_code}}
     )
   end
 
@@ -67,7 +67,7 @@ defmodule Cim.Datastore do
 
   def handle_call({:get, %{database_name: database_name, key: key}}, _from, state) do
     case get_in(state, [database_name, key]) do
-      nil -> {:reply, {:not_found, "The database or key do not exist"}, state}
+      nil -> {:reply, {:error, :not_found}, state}
       value -> {:reply, {:ok, value}, state}
     end
   end
@@ -79,7 +79,7 @@ defmodule Cim.Datastore do
       updated_state = Map.put(state, database_name, updated_database)
       {:reply, :ok, updated_state}
     else
-      :error -> {:reply, {:not_found, "The database or key do not exist"}, state}
+      :error -> {:reply, {:error, :not_found}, state}
     end
   end
 
@@ -90,31 +90,31 @@ defmodule Cim.Datastore do
         {:reply, :ok, updated_state}
 
       :error ->
-        {:reply, {:not_found, "The database does not exist"}, state}
+        {:reply, {:error, :not_found}, state}
     end
   end
 
   def handle_call(
-        {:execute_lua_request, %{lua_request: lua_request, database_name: database_name}},
+        {:execute_lua, %{lua_code: lua_code, database_name: database_name}},
         _from,
         state
       ) do
     with {:ok, database} <- Map.fetch(state, database_name),
          {:ok, %{value: value, updated_database: updated_database}} <-
-           execute_lua_request_on_db(database, lua_request) do
+           execute_lua_on_db(database, lua_code) do
       {:reply, {:ok, value || ""}, put_in(state, [database_name], Map.new(updated_database))}
     else
-      :error -> {:reply, {:not_found, "The database does not exist"}, state}
+      :error -> {:reply, {:error, :not_found}, state}
       {:lua_code_error, reason} -> {:reply, {:lua_code_error, reason}, state}
     end
   end
 
-  defp execute_lua_request_on_db(database, lua_request) do
+  defp execute_lua_on_db(database, lua_code) do
     updated_lua_state =
       set_functions_in_lua_state()
       |> Luerl.set_table([@cim_database], database)
 
-    case Lua.safe_do(updated_lua_state, lua_request) do
+    case Lua.safe_do(updated_lua_state, lua_code) do
       {:ok, %{result: result, lua_state: lua_state}} ->
         {updated_database, _lua_state} = Luerl.get_table(lua_state, [@cim_database])
         {:ok, %{value: result, updated_database: updated_database}}
