@@ -10,6 +10,7 @@ defmodule Cim.Datastore do
   Databases can be deleted.
   """
   use GenServer
+  alias Helpers.SafeLuerl
 
   @cim_database "__cim_database"
 
@@ -113,7 +114,7 @@ defmodule Cim.Datastore do
       set_functions_in_lua_state()
       |> Luerl.set_table([@cim_database], database)
 
-    case lua_do_exception_wrapper(updated_lua_state, lua_request) do
+    case SafeLuerl.safe_do(updated_lua_state, lua_request) do
       {:ok, %{result: result, lua_state: lua_state}} ->
         {updated_database, _lua_state} = Luerl.get_table(lua_state, [@cim_database])
         {:ok, %{value: result, updated_database: updated_database}}
@@ -121,18 +122,6 @@ defmodule Cim.Datastore do
       {:error, reason} ->
         {:lua_code_error, reason}
     end
-  end
-
-  defp lua_do_exception_wrapper(updated_lua_state, lua_request) do
-    {[result], lua_state} = Luerl.do(updated_lua_state, lua_request)
-    {:ok, %{result: result, lua_state: lua_state}}
-  rescue
-    e ->
-      case e do
-        %{original: {:lua_error, reason, _details}} -> {:error, reason}
-        %{term: {:error, reason, _details}} -> {:error, reason}
-        _ -> reraise e, __STACKTRACE__
-      end
   end
 
   defp set_functions_in_lua_state() do
