@@ -63,7 +63,7 @@ defmodule Cim.DataControllerTest do
 
   describe "PUT /create" do
     test "responds with 200 and no content" do
-      expect(Datastore, :push, fn database, key, body ->
+      expect(Datastore, :put, fn database, key, body ->
         assert "my_database" = database
         assert "my_key" = key
         assert "test" = body
@@ -81,7 +81,7 @@ defmodule Cim.DataControllerTest do
     end
 
     test "with a server error" do
-      expect(Datastore, :push, fn database, key, body ->
+      expect(Datastore, :put, fn database, key, body ->
         assert "my_database" = database
         assert "my_key" = key
         assert "test" = body

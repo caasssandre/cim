@@ -26,7 +26,7 @@ defmodule Cim.DataController do
   def create(%{params: params} = conn) do
     with {:ok, body, _conn} <- read_body(conn),
          {:ok, _response} <-
-           Datastore.push(params["database"], params["key"], body) do
+           Datastore.put(params["database"], params["key"], body) do
       send_resp(conn, 200, "")
     else
       {:error, reason} -> send_resp(conn, 500, "Error: #{reason}")

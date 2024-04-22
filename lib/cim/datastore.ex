@@ -10,7 +10,7 @@ defmodule Cim.Datastore do
   Databases can be deleted.
   """
   use GenServer
-  alias Helpers.SafeLuerl
+  alias Cim.Lua
 
   @cim_database "__cim_database"
 
@@ -20,9 +20,9 @@ defmodule Cim.Datastore do
     GenServer.start_link(__MODULE__, [], name: name)
   end
 
-  @spec push(String.t(), String.t(), binary()) :: {:ok, :new_data_added}
-  def push(pid \\ __MODULE__, database_name, key, body) do
-    GenServer.call(pid, {:push, %{database_name: database_name, key: key, value: body}})
+  @spec put(String.t(), String.t(), binary()) :: {:ok, :new_data_added}
+  def put(pid \\ __MODULE__, database_name, key, body) do
+    GenServer.call(pid, {:put, %{database_name: database_name, key: key, value: body}})
   end
 
   @spec delete_key(String.t(), String.t()) :: any()
@@ -54,7 +54,7 @@ defmodule Cim.Datastore do
   end
 
   @impl GenServer
-  def handle_call({:push, %{database_name: database_name, key: key, value: value}}, _from, state) do
+  def handle_call({:put, %{database_name: database_name, key: key, value: value}}, _from, state) do
     case Map.fetch(state, database_name) do
       {:ok, _database} ->
         {:reply, {:ok, :new_data_added}, put_in(state, [database_name, key], value)}
@@ -114,7 +114,7 @@ defmodule Cim.Datastore do
       set_functions_in_lua_state()
       |> Luerl.set_table([@cim_database], database)
 
-    case SafeLuerl.safe_do(updated_lua_state, lua_request) do
+    case Lua.safe_do(updated_lua_state, lua_request) do
       {:ok, %{result: result, lua_state: lua_state}} ->
         {updated_database, _lua_state} = Luerl.get_table(lua_state, [@cim_database])
         {:ok, %{value: result, updated_database: updated_database}}

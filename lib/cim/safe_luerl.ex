@@ -1,4 +1,4 @@
-defmodule Helpers.SafeLuerl do
+defmodule Cim.Lua do
   @moduledoc """
   A wrapper for Luerl to better handle exceptions
   """
