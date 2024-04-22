@@ -22,24 +22,23 @@ defmodule Cim.DatastoreTest do
 
   describe "push/2" do
     test "returns :ok", %{pid: pid} do
-      assert {:ok, :new_data_added} =
-               Datastore.put(pid, "test_database", "test_key", "test")
+      assert :ok = Datastore.put(pid, "test_database", "test_key", "test")
     end
   end
 
   describe "delete_key/2" do
     test "deletes the correct key", %{pid: pid} do
       Datastore.put(pid, "test_database", "test_key", "test")
-      Datastore.put(pid, "test_database", "test_key_two", "test")
-      Datastore.put(pid, "test_database_two", "test_key", "test")
+      Datastore.put(pid, "test_database", "test_key_two", "test_two")
+      Datastore.put(pid, "test_database_two", "test_key", "test_three")
 
-      assert {:ok, :key_deleted} =
+      assert :ok =
                Datastore.delete_key(pid, "test_database", "test_key")
 
-      assert {:ok, "test"} =
+      assert {:ok, "test_two"} =
                Datastore.get(pid, "test_database", "test_key_two")
 
-      assert {:ok, "test"} =
+      assert {:ok, "test_three"} =
                Datastore.get(pid, "test_database_two", "test_key")
 
       assert {:not_found, "The database or key do not exist"} =
@@ -53,7 +52,7 @@ defmodule Cim.DatastoreTest do
       Datastore.put(pid, "test_database", "test_key_two", "test")
       Datastore.put(pid, "test_database_two", "test_key", "test")
 
-      assert {:ok, :database_deleted} =
+      assert :ok =
                Datastore.delete_database(pid, "test_database")
 
       assert {:not_found, "The database or key do not exist"} =

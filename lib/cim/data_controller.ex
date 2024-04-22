@@ -25,7 +25,7 @@ defmodule Cim.DataController do
   @spec create(Plug.Conn.t()) :: Plug.Conn.t()
   def create(%{params: params} = conn) do
     with {:ok, body, _conn} <- read_body(conn),
-         {:ok, _response} <-
+         :ok <-
            Datastore.put(params["database"], params["key"], body) do
       send_resp(conn, 200, "")
     else
@@ -36,7 +36,7 @@ defmodule Cim.DataController do
   @spec delete_key(Plug.Conn.t()) :: Plug.Conn.t()
   def delete_key(%{params: params} = conn) do
     case Datastore.delete_key(params["database"], params["key"]) do
-      {:ok, _response} -> send_resp(conn, 200, "")
+      :ok -> send_resp(conn, 200, "")
       {:not_found, reason} -> send_resp(conn, 404, reason)
       {:error, reason} -> send_resp(conn, 500, "Error: #{reason}")
     end
@@ -45,7 +45,7 @@ defmodule Cim.DataController do
   @spec delete_database(Plug.Conn.t()) :: Plug.Conn.t()
   def delete_database(%{params: params} = conn) do
     case Datastore.delete_database(params["database"]) do
-      {:ok, _response} -> send_resp(conn, 200, "")
+      :ok -> send_resp(conn, 200, "")
       {:not_found, reason} -> send_resp(conn, 404, reason)
       {:error, reason} -> send_resp(conn, 500, "Error: #{reason}")
     end

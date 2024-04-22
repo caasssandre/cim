@@ -67,7 +67,7 @@ defmodule Cim.DataControllerTest do
         assert "my_database" = database
         assert "my_key" = key
         assert "test" = body
-        {:ok, :new_data_added}
+        :ok
       end)
 
       conn =
@@ -97,5 +97,14 @@ defmodule Cim.DataControllerTest do
       assert conn.status == 500
       assert conn.resp_body == "Error: internal server error"
     end
+  end
+
+  describe "DELETE /delete_key" do
+  end
+
+  describe "DELETE /delete_database" do
+  end
+
+  describe "POST /execute_lua_request" do
   end
 end

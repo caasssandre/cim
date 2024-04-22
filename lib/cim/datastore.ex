@@ -20,7 +20,7 @@ defmodule Cim.Datastore do
     GenServer.start_link(__MODULE__, [], name: name)
   end
 
-  @spec put(String.t(), String.t(), binary()) :: {:ok, :new_data_added}
+  @spec put(String.t(), String.t(), binary()) :: :ok
   def put(pid \\ __MODULE__, database_name, key, body) do
     GenServer.call(pid, {:put, %{database_name: database_name, key: key, value: body}})
   end
@@ -57,11 +57,11 @@ defmodule Cim.Datastore do
   def handle_call({:put, %{database_name: database_name, key: key, value: value}}, _from, state) do
     case Map.fetch(state, database_name) do
       {:ok, _database} ->
-        {:reply, {:ok, :new_data_added}, put_in(state, [database_name, key], value)}
+        {:reply, :ok, put_in(state, [database_name, key], value)}
 
       :error ->
         updated_state = Map.put(state, database_name, %{key => value})
-        {:reply, {:ok, :new_data_added}, updated_state}
+        {:reply, :ok, updated_state}
     end
   end
 
@@ -77,7 +77,7 @@ defmodule Cim.Datastore do
          {:ok, _value} <- Map.fetch(database, key) do
       updated_database = Map.delete(database, key)
       updated_state = Map.put(state, database_name, updated_database)
-      {:reply, {:ok, :key_deleted}, updated_state}
+      {:reply, :ok, updated_state}
     else
       :error -> {:reply, {:not_found, "The database or key do not exist"}, state}
     end
@@ -87,7 +87,7 @@ defmodule Cim.Datastore do
     case Map.fetch(state, database_name) do
       {:ok, _database} ->
         updated_state = Map.delete(state, database_name)
-        {:reply, {:ok, :database_deleted}, updated_state}
+        {:reply, :ok, updated_state}
 
       :error ->
         {:reply, {:not_found, "The database does not exist"}, state}
