@@ -10,7 +10,7 @@ defmodule Cim.DatastoreTest do
 
   describe "get/2" do
     test "returns the correct value for the database and key", %{pid: pid} do
-      Datastore.push(pid, "test_database", "test_key", "test")
+      Datastore.put(pid, "test_database", "test_key", "test")
       assert {:ok, "test"} = Datastore.get(pid, "test_database", "test_key")
     end
 
@@ -23,15 +23,15 @@ defmodule Cim.DatastoreTest do
   describe "push/2" do
     test "returns :ok", %{pid: pid} do
       assert {:ok, :new_data_added} =
-               Datastore.push(pid, "test_database", "test_key", "test")
+               Datastore.put(pid, "test_database", "test_key", "test")
     end
   end
 
   describe "delete_key/2" do
     test "deletes the correct key", %{pid: pid} do
-      Datastore.push(pid, "test_database", "test_key", "test")
-      Datastore.push(pid, "test_database", "test_key_two", "test")
-      Datastore.push(pid, "test_database_two", "test_key", "test")
+      Datastore.put(pid, "test_database", "test_key", "test")
+      Datastore.put(pid, "test_database", "test_key_two", "test")
+      Datastore.put(pid, "test_database_two", "test_key", "test")
 
       assert {:ok, :key_deleted} =
                Datastore.delete_key(pid, "test_database", "test_key")
@@ -49,9 +49,9 @@ defmodule Cim.DatastoreTest do
 
   describe "delete_database/2" do
     test "deletes the correct database", %{pid: pid} do
-      Datastore.push(pid, "test_database", "test_key", "test")
-      Datastore.push(pid, "test_database", "test_key_two", "test")
-      Datastore.push(pid, "test_database_two", "test_key", "test")
+      Datastore.put(pid, "test_database", "test_key", "test")
+      Datastore.put(pid, "test_database", "test_key_two", "test")
+      Datastore.put(pid, "test_database_two", "test_key", "test")
 
       assert {:ok, :database_deleted} =
                Datastore.delete_database(pid, "test_database")
@@ -69,8 +69,8 @@ defmodule Cim.DatastoreTest do
 
   describe "execute_lua_request/3" do
     test "cim.read returns the value for the key", %{pid: pid} do
-      Datastore.push(pid, "test_database", "test_key", "test")
-      Datastore.push(pid, "test_database", "test_key_2", "test_2")
+      Datastore.put(pid, "test_database", "test_key", "test")
+      Datastore.put(pid, "test_database", "test_key_2", "test_2")
 
       assert {:ok, "test"} =
                Datastore.execute_lua_request(pid, "test_database", "return cim.read('test_key')")
@@ -84,14 +84,14 @@ defmodule Cim.DatastoreTest do
     end
 
     test "cim.read returns an empty string if the key is not found", %{pid: pid} do
-      Datastore.push(pid, "test_database", "test_key", "test")
+      Datastore.put(pid, "test_database", "test_key", "test")
 
       assert {:ok, ""} =
                Datastore.execute_lua_request(pid, "test_database", "return cim.read('bad_key')")
     end
 
     test "cim.write adds the correct key value pair to the database", %{pid: pid} do
-      Datastore.push(pid, "test_database", "test_key", "test")
+      Datastore.put(pid, "test_database", "test_key", "test")
 
       assert {:ok, "new_value"} =
                Datastore.execute_lua_request(
@@ -102,7 +102,7 @@ defmodule Cim.DatastoreTest do
     end
 
     test "cim.delete deletes the correct key value pair to the database", %{pid: pid} do
-      Datastore.push(pid, "test_database", "test_key", "test")
+      Datastore.put(pid, "test_database", "test_key", "test")
 
       assert {:ok, ""} =
                Datastore.execute_lua_request(
@@ -136,7 +136,7 @@ defmodule Cim.DatastoreTest do
     end
 
     test "returns an error if the lua code is invalid", %{pid: pid} do
-      Datastore.push(pid, "test_database", "test_key", "test")
+      Datastore.put(pid, "test_database", "test_key", "test")
 
       assert {:lua_code_error, {:undefined_function, nil}} =
                Datastore.execute_lua_request(
