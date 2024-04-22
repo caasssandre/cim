@@ -108,7 +108,7 @@ defmodule Cim.Datastore do
 
   defp execute_lua_request_on_db(database, lua_request) do
     try do
-      {result, lua_state} =
+      {[result], lua_state} =
         set_functions_in_lua_state()
         |> Luerl.set_table([@cim_database], database)
         |> Luerl.do(lua_request)
@@ -117,13 +117,11 @@ defmodule Cim.Datastore do
 
       {:ok, %{value: result, updated_database: updated_database}}
     rescue
-      e in [ErlangError] ->
-        case e.original do
-          {:lua_error, reason, _details} ->
-            {:lua_code_error, reason}
-
-          _ ->
-            {:lua_code_error, e}
+      e ->
+        case e do
+          %{original: {:lua_error, reason, _details}} -> {:lua_code_error, reason}
+          %{term: {:error, reason, _details}} -> {:lua_code_error, reason}
+          _ -> {:lua_code_error, e}
         end
     end
   end
