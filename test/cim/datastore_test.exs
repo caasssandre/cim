@@ -137,7 +137,11 @@ defmodule Cim.DatastoreTest do
                  "cim.bad_function('new_key', 'new_value')"
                )
 
-      assert {:lua_code_error,  [{1, :luerl_parse, [~c"syntax error before: ", [[60, 60, ~c"\"new_key\"", 62, 62]]]}]} =
+      assert {:lua_code_error,
+              [
+                {1, :luerl_parse,
+                 [~c"syntax error before: ", [[60, 60, ~c"\"new_key\"", 62, 62]]]}
+              ]} =
                Datastore.execute_lua_request(
                  pid,
                  "test_database",

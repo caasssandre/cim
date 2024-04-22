@@ -19,25 +19,27 @@ defmodule Cim.Datastore do
     GenServer.start_link(__MODULE__, [], name: name)
   end
 
-  @spec push(any(), binary(), binary()) :: any()
+  @spec push(String.t(), String.t(), binary()) :: {:ok, :new_data_added}
   def push(pid \\ __MODULE__, database_name, key, body) do
     GenServer.call(pid, {:push, %{database_name: database_name, key: key, value: body}})
   end
 
+  @spec delete_key(String.t(), String.t()) :: any()
   def delete_key(pid \\ __MODULE__, database_name, key) do
     GenServer.call(pid, {:delete_key, %{database_name: database_name, key: key}})
   end
 
-  @spec delete_database(pid(), binary()) :: any()
+  @spec delete_database(String.t()) :: any()
   def delete_database(pid \\ __MODULE__, database_name) do
     GenServer.call(pid, {:delete_database, %{database_name: database_name}})
   end
 
-  @spec get(pid(), binary(), binary()) :: any()
+  @spec get(String.t(), String.t()) :: any()
   def get(pid \\ __MODULE__, database_name, key) do
     GenServer.call(pid, {:get, %{database_name: database_name, key: key}})
   end
 
+  @spec execute_lua_request(String.t(), String.t()) :: any()
   def execute_lua_request(pid \\ __MODULE__, database_name, lua_request) do
     GenServer.call(
       pid,
@@ -138,10 +140,10 @@ defmodule Cim.Datastore do
     fn [key], lua_state ->
       {database, _lua_state} = Luerl.get_table(lua_state, [@cim_database])
 
-      case Enum.find(database, fn {ds_key, _value} -> ds_key == key end) do
-        {_key, found_value} -> {[found_value], lua_state}
-        _ -> {[""], lua_state}
-      end
+      found_value =
+        Enum.find_value(database, "", fn {ds_key, value} -> if ds_key == key, do: value end)
+
+      {[found_value], lua_state}
     end
   end
 
