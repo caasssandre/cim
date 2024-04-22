@@ -70,9 +70,17 @@ defmodule Cim.DatastoreTest do
   describe "execute_lua_request/3" do
     test "cim.read returns the value for the key", %{pid: pid} do
       Datastore.push(pid, "test_database", "test_key", "test")
+      Datastore.push(pid, "test_database", "test_key_2", "test_2")
 
       assert {:ok, "test"} =
                Datastore.execute_lua_request(pid, "test_database", "return cim.read('test_key')")
+
+      assert {:ok, "test_2"} =
+               Datastore.execute_lua_request(
+                 pid,
+                 "test_database",
+                 "return cim.read('test_key_2')"
+               )
     end
 
     test "cim.read returns an empty string if the key is not found", %{pid: pid} do

@@ -141,7 +141,10 @@ defmodule Cim.Datastore do
       {database, _lua_state} = Luerl.get_table(lua_state, [@cim_database])
 
       found_value =
-        Enum.find_value(database, "", fn {ds_key, value} -> if ds_key == key, do: value end)
+        Enum.find_value(database, fn
+          {^key, value} -> value
+          _ -> nil
+        end)
 
       {[found_value], lua_state}
     end
@@ -152,16 +155,19 @@ defmodule Cim.Datastore do
       {database, _lua_state} = Luerl.get_table(lua_state, [@cim_database])
       updated_database = [{key, value}] ++ database
       updated_lua_state = Luerl.set_table(lua_state, [@cim_database], updated_database)
-      {[""], updated_lua_state}
+      {[value], updated_lua_state}
     end
   end
 
   defp set_lua_delete() do
     fn [key], lua_state ->
       {database, _lua_state} = Luerl.get_table(lua_state, [@cim_database])
-      updated_database = Enum.filter(database, fn {ds_key, _value} -> ds_key != key end)
+
+      {[{_key, value}], updated_database} =
+        Enum.split_with(database, fn {database_key, _value} -> database_key == key end)
+
       updated_lua_state = Luerl.set_table(lua_state, [@cim_database], updated_database)
-      {[""], updated_lua_state}
+      {[value], updated_lua_state}
     end
   end
 end

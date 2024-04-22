@@ -11,7 +11,7 @@ defmodule Cim.DataController do
     case Datastore.get(params["database"], params["key"]) do
       {:ok, value} ->
         conn
-        # |> put_resp_content_type("application/octet-stream")
+        |> put_resp_content_type("application/octet-stream")
         |> send_resp(200, value)
 
       {:not_found, reason} ->
@@ -56,7 +56,7 @@ defmodule Cim.DataController do
     with {:ok, body, _conn} <- read_body(conn),
          {:ok, response} <- Datastore.execute_lua_request(params["database"], body) do
       conn
-      # |> put_resp_content_type("application/octet-stream")
+      |> put_resp_content_type("application/octet-stream")
       |> send_resp(200, response)
     else
       {:not_found, reason} ->
