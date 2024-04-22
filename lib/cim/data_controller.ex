@@ -1,6 +1,6 @@
 defmodule Cim.DataController do
   @moduledoc """
-  Controller to handle CRUD operations
+  Controller to handle CRUD operations on the datastore
   """
   import Plug.Conn
 
