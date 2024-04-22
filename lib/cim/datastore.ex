@@ -109,23 +109,30 @@ defmodule Cim.Datastore do
   end
 
   defp execute_lua_request_on_db(database, lua_request) do
-    try do
-      {[result], lua_state} =
-        set_functions_in_lua_state()
-        |> Luerl.set_table([@cim_database], database)
-        |> Luerl.do(lua_request)
+    updated_lua_state =
+      set_functions_in_lua_state()
+      |> Luerl.set_table([@cim_database], database)
 
-      {updated_database, _lua_state} = Luerl.get_table(lua_state, [@cim_database])
+    case lua_do_exception_wrapper(updated_lua_state, lua_request) do
+      {:ok, %{result: result, lua_state: lua_state}} ->
+        {updated_database, _lua_state} = Luerl.get_table(lua_state, [@cim_database])
+        {:ok, %{value: result, updated_database: updated_database}}
 
-      {:ok, %{value: result, updated_database: updated_database}}
-    rescue
-      e ->
-        case e do
-          %{original: {:lua_error, reason, _details}} -> {:lua_code_error, reason}
-          %{term: {:error, reason, _details}} -> {:lua_code_error, reason}
-          _ -> {:lua_code_error, e}
-        end
+      {:error, reason} ->
+        {:lua_code_error, reason}
     end
+  end
+
+  defp lua_do_exception_wrapper(updated_lua_state, lua_request) do
+    {[result], lua_state} = Luerl.do(updated_lua_state, lua_request)
+    {:ok, %{result: result, lua_state: lua_state}}
+  rescue
+    e ->
+      case e do
+        %{original: {:lua_error, reason, _details}} -> {:error, reason}
+        %{term: {:error, reason, _details}} -> {:error, reason}
+        _ -> reraise e, __STACKTRACE__
+      end
   end
 
   defp set_functions_in_lua_state() do
