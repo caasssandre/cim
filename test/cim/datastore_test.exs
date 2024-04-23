@@ -107,7 +107,7 @@ defmodule Cim.DatastoreTest do
                Datastore.execute_lua(
                  pid,
                  "test_database",
-                 "cim.write('test_key', 'new_value') return cim.read('new_key')"
+                 "cim.write('test_key', 'new_value') return cim.read('test_key')"
                )
     end
 
