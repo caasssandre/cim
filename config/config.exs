@@ -1,4 +1,6 @@
 import Config
 
-config :cim,
-  cowboy_port: 8080
+if System.get_env("COWBOY_PORT") do
+  config :cim,
+    cowboy_port: System.get_env("COWBOY_PORT") |> String.to_integer()
+end
