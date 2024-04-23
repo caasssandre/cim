@@ -77,8 +77,7 @@ defmodule Cim.Datastore do
   def handle_call({:delete_key, %{database_name: database_name, key: key}}, _from, state) do
     with {:ok, database} <- Map.fetch(state, database_name),
          true <- Map.has_key?(database, key) do
-      updated_database = Map.delete(database, key)
-      updated_state = Map.put(state, database_name, updated_database)
+      updated_state = Map.put(state, database_name, Map.delete(database, key))
       {:reply, :ok, updated_state}
     else
       :error -> {:reply, {:error, :not_found}, state}
@@ -152,7 +151,8 @@ defmodule Cim.Datastore do
   defp set_lua_write() do
     fn [key, value], lua_state ->
       {database, _lua_state} = Luerl.get_table(lua_state, [@cim_database])
-      updated_database = [{key, value} | database]
+
+      updated_database = Map.new(database) |> Map.put(key, value)
       updated_lua_state = Luerl.set_table(lua_state, [@cim_database], updated_database)
       {[value], updated_lua_state}
     end

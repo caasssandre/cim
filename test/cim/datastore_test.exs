@@ -100,6 +100,17 @@ defmodule Cim.DatastoreTest do
                )
     end
 
+    test "cim.write overwrites an existing value", %{pid: pid} do
+      Datastore.put(pid, "test_database", "test_key", "test")
+
+      assert {:ok, "new_value"} =
+               Datastore.execute_lua(
+                 pid,
+                 "test_database",
+                 "cim.write('test_key', 'new_value') return cim.read('new_key')"
+               )
+    end
+
     test "cim.delete deletes the correct key value pair to the database", %{pid: pid} do
       Datastore.put(pid, "test_database", "test_key", "test")
 

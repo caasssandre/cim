@@ -63,7 +63,7 @@ defmodule Cim.DataController do
          {:ok, response} <- Datastore.execute_lua(params["database"], body) do
       conn
       |> put_resp_content_type("application/octet-stream")
-      |> send_resp(200, response)
+      |> send_resp(200, response || "")
     else
       {:error, :not_found} ->
         send_resp(conn, 404, "The database or key do not exist")
