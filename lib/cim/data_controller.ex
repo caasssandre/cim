@@ -16,9 +16,6 @@ defmodule Cim.DataController do
 
       {:error, :not_found} ->
         send_resp(conn, 404, "The database or key do not exist")
-
-        # _ ->
-        #   send_resp(conn, 500, "Error: ")
     end
   end
 
@@ -41,7 +38,6 @@ defmodule Cim.DataController do
 
       {:error, :not_found} ->
         send_resp(conn, 404, "The database or key do not exist")
-        # {:error, reason} -> send_resp(conn, 500, "Error: #{reason}")
     end
   end
 
@@ -53,7 +49,6 @@ defmodule Cim.DataController do
 
       {:error, :not_found} ->
         send_resp(conn, 404, "The database does not exist")
-        # {:error, reason} -> send_resp(conn, 500, "Error: #{reason}")
     end
   end
 
@@ -70,9 +65,6 @@ defmodule Cim.DataController do
 
       {:error, {:lua, reason}} ->
         send_resp(conn, 400, "Lua error: #{inspect(reason)}")
-
-        # {:error, reason} ->
-        #   send_resp(conn, 500, "Error: #{inspect(reason)}")
     end
   end
 end

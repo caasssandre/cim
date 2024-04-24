@@ -42,23 +42,6 @@ defmodule Cim.DataControllerTest do
       assert conn.status == 200
       assert conn.resp_body == "test"
     end
-
-    test "with a server error" do
-      expect(Datastore, :get, fn database, key ->
-        assert "my_database" = database
-        assert "my_key" = key
-        {:error, "internal server error"}
-      end)
-
-      conn =
-        :get
-        |> conn("/my_database/my_key")
-        |> Router.call(@opts)
-
-      assert conn.state == :sent
-      assert conn.status == 500
-      assert conn.resp_body == "Error: internal server error"
-    end
   end
 
   describe "PUT /create" do

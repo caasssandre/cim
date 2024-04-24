@@ -36,13 +36,13 @@ defmodule Cim.Datastore do
   end
 
   @spec get(atom() | pid(), String.t(), String.t()) ::
-          {:ok, binary()} | {:error, :not_found} | {:lua_code_error, binary()}
+          {:ok, binary()} | {:error, :not_found} | {:error, {:lua, any()}}
   def get(pid \\ __MODULE__, database_name, key) do
     GenServer.call(pid, {:get, %{database_name: database_name, key: key}})
   end
 
   @spec execute_lua(atom() | pid(), String.t(), String.t()) ::
-          {:ok, binary()} | {:error, :not_found} | {:lua_code_error, binary()}
+          {:ok, binary() | nil} | {:error, :not_found} | {:error, {:lua, any()}}
   def execute_lua(pid \\ __MODULE__, database_name, lua_code) do
     GenServer.call(
       pid,
