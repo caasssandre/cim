@@ -7,6 +7,8 @@ defmodule Cim.Application do
 
   @impl true
   def start(_type, _args) do
+    Dotenv.load()
+
     children = [
       Cim.Datastore,
       {Plug.Cowboy, scheme: :http, plug: Cim.Router, options: [port: cowboy_port()]}

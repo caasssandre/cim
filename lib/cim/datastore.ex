@@ -10,7 +10,7 @@ defmodule Cim.Datastore do
   Databases can be deleted.
   """
   use GenServer
-  alias Helpers.SafeLuerl
+  alias Cim.Lua
 
   @cim_database "__cim_database"
 
@@ -20,31 +20,33 @@ defmodule Cim.Datastore do
     GenServer.start_link(__MODULE__, [], name: name)
   end
 
-  @spec push(String.t(), String.t(), binary()) :: {:ok, :new_data_added}
-  def push(pid \\ __MODULE__, database_name, key, body) do
-    GenServer.call(pid, {:push, %{database_name: database_name, key: key, value: body}})
+  @spec put(atom() | pid(), String.t(), String.t(), binary()) :: :ok
+  def put(pid \\ __MODULE__, database_name, key, body) do
+    GenServer.call(pid, {:put, %{database_name: database_name, key: key, value: body}})
   end
 
-  @spec delete_key(String.t(), String.t()) :: any()
+  @spec delete_key(atom() | pid(), String.t(), String.t()) :: :ok | {:error, :not_found}
   def delete_key(pid \\ __MODULE__, database_name, key) do
     GenServer.call(pid, {:delete_key, %{database_name: database_name, key: key}})
   end
 
-  @spec delete_database(String.t()) :: any()
+  @spec delete_database(atom() | pid(), String.t()) :: :ok | {:error, :not_found}
   def delete_database(pid \\ __MODULE__, database_name) do
     GenServer.call(pid, {:delete_database, %{database_name: database_name}})
   end
 
-  @spec get(String.t(), String.t()) :: any()
+  @spec get(atom() | pid(), String.t(), String.t()) ::
+          {:ok, binary()} | {:error, :not_found} | {:error, {:lua, any()}}
   def get(pid \\ __MODULE__, database_name, key) do
     GenServer.call(pid, {:get, %{database_name: database_name, key: key}})
   end
 
-  @spec execute_lua_request(String.t(), String.t()) :: any()
-  def execute_lua_request(pid \\ __MODULE__, database_name, lua_request) do
+  @spec execute_lua(atom() | pid(), String.t(), String.t()) ::
+          {:ok, binary() | nil} | {:error, :not_found} | {:error, {:lua, any()}}
+  def execute_lua(pid \\ __MODULE__, database_name, lua_code) do
     GenServer.call(
       pid,
-      {:execute_lua_request, %{database_name: database_name, lua_request: lua_request}}
+      {:execute_lua, %{database_name: database_name, lua_code: lua_code}}
     )
   end
 
@@ -54,32 +56,32 @@ defmodule Cim.Datastore do
   end
 
   @impl GenServer
-  def handle_call({:push, %{database_name: database_name, key: key, value: value}}, _from, state) do
+  def handle_call({:put, %{database_name: database_name, key: key, value: value}}, _from, state) do
     case Map.fetch(state, database_name) do
       {:ok, _database} ->
-        {:reply, {:ok, :new_data_added}, put_in(state, [database_name, key], value)}
+        {:reply, :ok, put_in(state, [database_name, key], value)}
 
       :error ->
         updated_state = Map.put(state, database_name, %{key => value})
-        {:reply, {:ok, :new_data_added}, updated_state}
+        {:reply, :ok, updated_state}
     end
   end
 
   def handle_call({:get, %{database_name: database_name, key: key}}, _from, state) do
     case get_in(state, [database_name, key]) do
-      nil -> {:reply, {:not_found, "The database or key do not exist"}, state}
+      nil -> {:reply, {:error, :not_found}, state}
       value -> {:reply, {:ok, value}, state}
     end
   end
 
   def handle_call({:delete_key, %{database_name: database_name, key: key}}, _from, state) do
     with {:ok, database} <- Map.fetch(state, database_name),
-         {:ok, _value} <- Map.fetch(database, key) do
-      updated_database = Map.delete(database, key)
-      updated_state = Map.put(state, database_name, updated_database)
-      {:reply, {:ok, :key_deleted}, updated_state}
+         true <- Map.has_key?(database, key) do
+      updated_state = Map.put(state, database_name, Map.delete(database, key))
+      {:reply, :ok, updated_state}
     else
-      :error -> {:reply, {:not_found, "The database or key do not exist"}, state}
+      :error -> {:reply, {:error, :not_found}, state}
+      false -> {:reply, {:error, :not_found}, state}
     end
   end
 
@@ -87,52 +89,52 @@ defmodule Cim.Datastore do
     case Map.fetch(state, database_name) do
       {:ok, _database} ->
         updated_state = Map.delete(state, database_name)
-        {:reply, {:ok, :database_deleted}, updated_state}
+        {:reply, :ok, updated_state}
 
       :error ->
-        {:reply, {:not_found, "The database does not exist"}, state}
+        {:reply, {:error, :not_found}, state}
     end
   end
 
   def handle_call(
-        {:execute_lua_request, %{lua_request: lua_request, database_name: database_name}},
+        {:execute_lua, %{lua_code: lua_code, database_name: database_name}},
         _from,
         state
       ) do
     with {:ok, database} <- Map.fetch(state, database_name),
          {:ok, %{value: value, updated_database: updated_database}} <-
-           execute_lua_request_on_db(database, lua_request) do
-      {:reply, {:ok, value || ""}, put_in(state, [database_name], Map.new(updated_database))}
+           execute_lua_on_db(database, lua_code) do
+      {:reply, {:ok, value}, Map.put(state, database_name, Map.new(updated_database))}
     else
-      :error -> {:reply, {:not_found, "The database does not exist"}, state}
-      {:lua_code_error, reason} -> {:reply, {:lua_code_error, reason}, state}
+      :error -> {:reply, {:error, :not_found}, state}
+      {:error, {:lua, reason}} -> {:reply, {:error, {:lua, reason}}, state}
     end
   end
 
-  defp execute_lua_request_on_db(database, lua_request) do
+  defp execute_lua_on_db(database, lua_code) do
     updated_lua_state =
       set_functions_in_lua_state()
       |> Luerl.set_table([@cim_database], database)
 
-    case SafeLuerl.safe_do(updated_lua_state, lua_request) do
+    case Lua.safe_do(updated_lua_state, lua_code) do
       {:ok, %{result: result, lua_state: lua_state}} ->
         {updated_database, _lua_state} = Luerl.get_table(lua_state, [@cim_database])
         {:ok, %{value: result, updated_database: updated_database}}
 
       {:error, reason} ->
-        {:lua_code_error, reason}
+        {:error, {:lua, reason}}
     end
   end
 
   defp set_functions_in_lua_state() do
     Luerl.init()
     |> Luerl.set_table(["cim"], %{})
-    |> Luerl.set_table(["cim", "read"], set_lua_read())
-    |> Luerl.set_table(["cim", "write"], set_lua_write())
-    |> Luerl.set_table(["cim", "delete"], set_lua_delete())
+    |> Luerl.set_table(["cim", "read"], lua_read())
+    |> Luerl.set_table(["cim", "write"], lua_write())
+    |> Luerl.set_table(["cim", "delete"], lua_delete())
   end
 
-  defp set_lua_read() do
+  defp lua_read() do
     fn [key], lua_state ->
       {database, _lua_state} = Luerl.get_table(lua_state, [@cim_database])
 
@@ -146,16 +148,17 @@ defmodule Cim.Datastore do
     end
   end
 
-  defp set_lua_write() do
+  defp lua_write() do
     fn [key, value], lua_state ->
       {database, _lua_state} = Luerl.get_table(lua_state, [@cim_database])
-      updated_database = [{key, value}] ++ database
+
+      updated_database = Map.new(database) |> Map.put(key, value)
       updated_lua_state = Luerl.set_table(lua_state, [@cim_database], updated_database)
       {[value], updated_lua_state}
     end
   end
 
-  defp set_lua_delete() do
+  defp lua_delete() do
     fn [key], lua_state ->
       {database, _lua_state} = Luerl.get_table(lua_state, [@cim_database])
 
