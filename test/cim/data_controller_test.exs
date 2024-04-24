@@ -23,7 +23,7 @@ defmodule Cim.DataControllerTest do
 
       assert conn.state == :sent
       assert conn.status == 404
-      assert conn.resp_body == "The database or key do not exist"
+      assert conn.resp_body == "The database or key does not exist"
     end
 
     test "finds the key and returns 200" do
@@ -168,7 +168,7 @@ defmodule Cim.DataControllerTest do
 
       assert conn.state == :sent
       assert conn.status == 404
-      assert conn.resp_body == "The database or key do not exist"
+      assert conn.resp_body == "The database or key does not exist"
     end
 
     test "responds with 404 and an error message when the lua code is invalid" do

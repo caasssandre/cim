@@ -111,6 +111,19 @@ defmodule Cim.DatastoreTest do
                )
     end
 
+    test "cim.write complains about argument error elegantly", %{pid: pid} do
+      Datastore.put(pid, "test_database", "test_key", "test")
+
+      assert {:error,
+              {:lua,
+               "ArgumentError: cannot convert the given list to a string.\n\nTo be converted to a string, a list must either be empty or only\ncontain the following elements:\n\n  * strings\n  * integers representing Unicode code points\n  * a list containing one of these three elements\n\nPlease check the given list or call inspect/1 to get the list representation, got:\n\n[{\"age\", 30}, {\"is_employed\", true}, {\"name\", \"John\"}]\n"}} =
+               Datastore.execute_lua(
+                 pid,
+                 "test_database",
+                 "cim.write('test_key', { name = 'John', age = 30, is_employed = true})"
+               )
+    end
+
     test "cim.delete deletes the correct key value pair to the database", %{pid: pid} do
       Datastore.put(pid, "test_database", "test_key", "test")
 
@@ -172,6 +185,17 @@ defmodule Cim.DatastoreTest do
                  pid,
                  "test_database",
                  "cim.'new_key', 'new_value'"
+               )
+    end
+
+    test "Lua complains about missing function elegantly", %{pid: pid} do
+      Datastore.put(pid, "test_database", "test_key", "test")
+
+      assert {:error, {:lua, {:undefined_function, nil}}} =
+               Datastore.execute_lua(
+                 pid,
+                 "test_database",
+                 "cim.does_not_exist('test_key', 'hello')"
                )
     end
   end

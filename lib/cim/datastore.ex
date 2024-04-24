@@ -152,9 +152,9 @@ defmodule Cim.Datastore do
     fn [key, value], lua_state ->
       {database, _lua_state} = Luerl.get_table(lua_state, [@cim_database])
 
-      updated_database = Map.new(database) |> Map.put(key, value)
+      updated_database = Map.new(database) |> Map.put(key, to_string(value))
       updated_lua_state = Luerl.set_table(lua_state, [@cim_database], updated_database)
-      {[value], updated_lua_state}
+      {[to_string(value)], updated_lua_state}
     end
   end
 
