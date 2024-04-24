@@ -11,6 +11,12 @@ defmodule Cim.Lua do
     e in [FunctionClauseError] ->
       {:error, e}
 
+    e in [ArgumentError] ->
+      case e do
+        %{message: reason} -> {:error, "ArgumentError: " <> reason}
+        _ -> reraise e, __STACKTRACE__
+      end
+
     e ->
       case e do
         %{original: {:lua_error, reason, _details}} -> {:error, reason}
