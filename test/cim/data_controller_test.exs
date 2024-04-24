@@ -201,7 +201,7 @@ defmodule Cim.DataControllerTest do
         |> Router.call(@opts)
 
       assert conn.state == :sent
-      assert conn.status == 404
+      assert conn.status == 400
       assert conn.resp_body == "Lua error: \"Syntax error\""
     end
   end

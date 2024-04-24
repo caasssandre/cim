@@ -129,12 +129,12 @@ defmodule Cim.Datastore do
   defp set_functions_in_lua_state() do
     Luerl.init()
     |> Luerl.set_table(["cim"], %{})
-    |> Luerl.set_table(["cim", "read"], set_lua_read())
-    |> Luerl.set_table(["cim", "write"], set_lua_write())
-    |> Luerl.set_table(["cim", "delete"], set_lua_delete())
+    |> Luerl.set_table(["cim", "read"], lua_read())
+    |> Luerl.set_table(["cim", "write"], lua_write())
+    |> Luerl.set_table(["cim", "delete"], lua_delete())
   end
 
-  defp set_lua_read() do
+  defp lua_read() do
     fn [key], lua_state ->
       {database, _lua_state} = Luerl.get_table(lua_state, [@cim_database])
 
@@ -148,7 +148,7 @@ defmodule Cim.Datastore do
     end
   end
 
-  defp set_lua_write() do
+  defp lua_write() do
     fn [key, value], lua_state ->
       {database, _lua_state} = Luerl.get_table(lua_state, [@cim_database])
 
@@ -158,7 +158,7 @@ defmodule Cim.Datastore do
     end
   end
 
-  defp set_lua_delete() do
+  defp lua_delete() do
     fn [key], lua_state ->
       {database, _lua_state} = Luerl.get_table(lua_state, [@cim_database])
 

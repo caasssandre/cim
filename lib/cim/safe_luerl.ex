@@ -8,6 +8,9 @@ defmodule Cim.Lua do
     {[result], lua_state} = Luerl.do(lua_state, lua_code)
     {:ok, %{result: result, lua_state: lua_state}}
   rescue
+    e in [FunctionClauseError] ->
+      {:error, e}
+
     e ->
       case e do
         %{original: {:lua_error, reason, _details}} -> {:error, reason}

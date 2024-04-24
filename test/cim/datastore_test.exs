@@ -114,11 +114,18 @@ defmodule Cim.DatastoreTest do
     test "cim.delete deletes the correct key value pair to the database", %{pid: pid} do
       Datastore.put(pid, "test_database", "test_key", "test")
 
+      assert {:ok, "test"} =
+               Datastore.execute_lua(
+                 pid,
+                 "test_database",
+                 "return cim.delete('test_key')"
+               )
+
       assert {:ok, nil} =
                Datastore.execute_lua(
                  pid,
                  "test_database",
-                 "cim.delete('test_key') return cim.read('test_key')"
+                 "return cim.read('test_key')"
                )
     end
 
